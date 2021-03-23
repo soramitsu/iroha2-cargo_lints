@@ -21,7 +21,7 @@ why it is handy to have a utility such as this one.
 
 Install with:
 ```sh
-$ cargo install --git https://github.com/i1i1/clippy-lints
+$ cargo install --git https://github.com/soramitsu/iroha2-cargo_lints
 ```
 
 ## Example

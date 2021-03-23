@@ -124,7 +124,7 @@ impl Lints {
     }
 
     pub fn clippy(&self, args: &[String]) -> Result<()> {
-        Command::new("cargo")
+        let code = Command::new("cargo")
             .arg("clippy")
             .args(args)
             .arg("--")
@@ -134,8 +134,13 @@ impl Lints {
             .spawn()
             .wrap_err("Failed to start clippy")?
             .wait()
-            .wrap_err("Failed to wait till finish of clippy")
-            .map(drop)
+            .wrap_err("Failed to wait till finish of clippy")?;
+
+        if code.success() {
+            return Ok(());
+        }
+
+        Err(eyre!("Clippy failed with code {}", code))
     }
 }
 
