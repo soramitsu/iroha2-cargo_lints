@@ -1,7 +1,7 @@
 [package]
 name = "cargo-lints"
 version = "0.1.0"
-authors = ["i1i1"]
+authors = ["Soramitsu Iroha2 team"]
 edition = "2018"
 license = "MIT"
 repository = "https://github.com/i1i1/cargo-lints"
