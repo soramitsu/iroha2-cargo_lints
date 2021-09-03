@@ -46,11 +46,11 @@ allow = [
 
 After that you can run:
 
-#### `$ cargo lint fmt`
+#### `$ cargo lints fmt`
 
 to format the toml file.
 
-#### `$ cargo lint clippy`
+#### `$ cargo lints clippy`
 
 to run clippy (you don't have to have `lints.toml` file - in that case it will simply run `cargo clippy`).
 
