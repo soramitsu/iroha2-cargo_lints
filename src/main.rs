@@ -44,6 +44,10 @@ struct Lints {
     allow: Vec<String>,
     #[serde(default)]
     warn: Vec<String>,
+
+    /// Reverse argument order so that denies override allows.
+    #[serde(default)]
+    reverse: bool,
 }
 
 const LINTS_FILE: &str = "lints.toml";
@@ -54,8 +58,7 @@ const COMMENT: &str = r#"#
 
 impl Lints {
     pub fn find_config_file() -> Result<Option<PathBuf>> {
-        let mut path =
-            env::current_dir().wrap_err("Failed to get current directory")?;
+        let mut path = env::current_dir().wrap_err("Failed to get current directory")?;
         loop {
             let lints = path.join(LINTS_FILE);
             if !lints.exists() {
@@ -73,8 +76,7 @@ impl Lints {
     }
 
     pub fn from_config() -> Result<Self> {
-        Self::find_config_file()?
-            .map_or_else(|| Ok(Lints::default()), Self::from_config_with_path)
+        Self::find_config_file()?.map_or_else(|| Ok(Lints::default()), Self::from_config_with_path)
     }
 
     pub fn from_config_with_path(file: PathBuf) -> Result<Self> {
@@ -124,38 +126,40 @@ impl Lints {
     }
 
     pub fn clippy(&self, args: &[String]) -> Result<()> {
-        let code = Command::new("cargo")
-            .arg("clippy")
-            .args(args)
-            .arg("--")
-            .args(self.deny_flags())
-            .args(self.warn_flags())
-            .args(self.allow_flags())
+        let mut code = Command::new("cargo");
+        code.arg("clippy").args(args).arg("--");
+
+        if self.reverse {
+            code.args(self.allow_flags())
+                .args(self.warn_flags())
+                .args(self.deny_flags())
+        } else {
+            code.args(self.deny_flags())
+                .args(self.warn_flags())
+                .args(self.allow_flags())
+        };
+
+        let result = code
             .spawn()
             .wrap_err("Failed to start clippy")?
             .wait()
             .wrap_err("Failed to wait till finish of clippy")?;
 
-        if code.success() {
+        if result.success() {
             return Ok(());
         }
 
-        Err(eyre!("Clippy failed with code {}", code))
+        Err(eyre!("Clippy failed with code {}", result))
     }
 }
 
 fn main() -> Result<()> {
     let Cargo::Lints(Args { cmd, file }) = Cargo::from_args();
-    let mut lints =
-        file.map_or_else(Lints::from_config, Lints::from_config_with_path)?;
+    let mut lints = file.map_or_else(Lints::from_config, Lints::from_config_with_path)?;
 
     match cmd {
         Subcommands::Fmt => lints.fmt(),
-        Subcommands::Clippy(args) if args[0] == "clippy" => {
-            lints.clippy(&args[1..])
-        }
-        Subcommands::Clippy(args) => {
-            Err(eyre!("Unknown subcommand: `{}'", args[0]))
-        }
+        Subcommands::Clippy(args) if args[0] == "clippy" => lints.clippy(&args[1..]),
+        Subcommands::Clippy(args) => Err(eyre!("Unknown subcommand: `{}'", args[0])),
     }
 }
