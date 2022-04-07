@@ -124,13 +124,18 @@ impl Lints {
     }
 
     pub fn clippy(&self, args: &[String]) -> Result<()> {
+        let mut split_args = args.splitn(2, |arg| arg == "--");
+        let pre_args = split_args.next().unwrap(); // Always exists
+        let post_args = split_args.next().unwrap_or(&[]);
+
         let code = Command::new("cargo")
             .arg("clippy")
-            .args(args)
+            .args(pre_args)
             .arg("--")
             .args(self.deny_flags())
             .args(self.warn_flags())
             .args(self.allow_flags())
+            .args(post_args)
             .spawn()
             .wrap_err("Failed to start clippy")?
             .wait()
